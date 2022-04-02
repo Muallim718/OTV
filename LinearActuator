@@ -1,1 +1,65 @@
+// *** Work in progress *** // 
 
+const int ENA_PIN = 6; // the Arduino pin connected to the EN1 pin L298N
+const int IN1_PIN = 7; // the Arduino pin connected to the IN1 pin L298N
+const int IN2_PIN = 5; // the Arduino pin connected to the IN2 pin L298N
+unsigned long timeBegin = 0;
+unsigned long timeEnd = 0;
+unsigned long duration = 0;
+
+// the setup function runs once when you press reset or power the board
+void setup() {
+  // Initialize digital pins as outputs.
+  pinMode(ENA_PIN, OUTPUT);
+  pinMode(IN1_PIN, OUTPUT);
+  pinMode(IN2_PIN, OUTPUT);
+  Serial.begin(9600);
+
+  digitalWrite(ENA_PIN, HIGH);
+}
+
+// the loop function runs over and over again forever
+void loop() {
+  
+//  extend(255);  // First extend the actuator
+//  delay(10000); // Stop @ center for 10s
+  
+  
+  extend(255);  // Extend to far right position
+  delay(3000); // Stop @ far right position for 10s
+
+  
+  retract(255); // Rectract to center 
+  delay(3000); // Stop @ center for 10s
+
+  retract(255); // Rectract to far left position 
+  delay(3000); // Stop @ far left position for 10s
+
+  extend(255); // Go back to center
+  delay(3000); // Stop @ center for 10s
+}
+
+void extend(int a) {
+  analogWrite(ENA_PIN, a);
+  digitalWrite(IN1_PIN, HIGH);
+  digitalWrite(IN2_PIN, LOW);
+  delay(381);
+  analogWrite(ENA_PIN, 0);
+}
+
+void retract(int a) {
+  analogWrite(ENA_PIN, a);
+  digitalWrite(IN1_PIN, LOW);
+  digitalWrite(IN2_PIN, HIGH);
+  delay(381);
+  analogWrite(ENA_PIN, 0);
+
+}
+
+/* Results, 1st Test @50mm/s
+ *  When it first actuates, it centers at 11.5/16 in, 0.71875in
+ *  When it extends to the far right position, it's at 1 6/16in, 1.375in
+ *  When it retracts to the center, it's at 8.5/16in, 0.53125in
+ *  When it retracts to the far left position, it's at 0in 
+ *  Center is not 0.75in, centers do not match, far left position is not correct
+ */
