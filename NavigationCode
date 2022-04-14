@@ -1,0 +1,277 @@
+#include "Enes100.h"
+#include <math.h>
+
+
+// Linear Actuator
+const int ENA_PIN = 6; // the Arduino pin connected to the EN1 pin L298N
+const int IN1_PIN = 7; // the Arduino pin connected to the IN1 pin L298N
+const int IN2_PIN = 5; // the Arduino pin connected to the IN2 pin L298N
+
+// Motor Pins
+int L1 = 9;
+int L2 = 10;
+int LS = 11;
+
+// Ultrasonic sensor
+const int echoPin = 2;
+const int trigPin = 3;
+
+int oldx = 0;
+int oldy = 0;
+
+long duration;
+int distance; // Variable for the duration and distance
+
+/* The code inside void setup() runs only once, before the code in void loop(). */
+void setup() {
+
+  // Ultrasonic sensor
+
+  pinMode(trigPin, OUTPUT);
+  pinMode(echoPin, INPUT);
+  Serial.begin(9600);
+
+  // Actuator
+  pinMode(ENA_PIN, OUTPUT);
+  pinMode(IN1_PIN, OUTPUT);
+  pinMode(IN2_PIN, OUTPUT);
+  Serial.begin(9600);
+
+  digitalWrite(ENA_PIN, HIGH);
+
+
+  Enes100.begin("DR.SYD", DATA, 3, 8, 9);
+
+  // Required before you can use any other Enes100 functions.
+  // Required before you can use any other Tank functions.
+
+  // Destination
+
+  Enes100.print("Destination is ");
+  Enes100.print(Enes100.missionSite.x); // Prints x coordinate
+  Enes100.print(", ");
+  Enes100.print(Enes100.missionSite.y); // Prints y coordinate
+
+  Enes100.updateLocation();
+
+  // If OTV starts at upper half
+
+  if (Enes100.location.y > 1) {
+    while (Enes100.location.x > 0.15) {
+      left(255);
+      back(255);
+      Enes100.updateLocation();
+
+
+    }
+
+    while (Enes100.location.x < 0.55) {
+      right(255);
+      right(255);
+      forward(255);
+      Enes100.updateLocation();
+    }
+  }
+
+  // If OTV starts at lower half
+
+  else  {
+      while (Enes100.location.x > 0.15) {
+        right(255);
+        back(255);
+        Enes100.updateLocation();
+
+      }
+
+      while (Enes100.location.x < 0.55) {
+        left(255);
+        left(255);
+        forward(255);
+        Enes100.updateLocation();
+      }
+
+    }
+
+
+      // Get to mission site
+      if (Enes100.location.y > 1) {
+        while (Enes100.location.y < 0.55) {
+          forward(255);
+          Enes100.updateLocation();
+        }
+      }
+
+      else  {
+          while (Enes100.location.y < 1.45) {
+            forward(255);
+            Enes100.updateLocation();
+          }
+          // Start navigating through obstacles
+          if (Enes100.location.y > 1) {
+
+            while (Enes100.location.x > 0.15) {
+              left(255);
+              back(255);
+              Enes100.updateLocation();
+            }
+          }
+        }
+
+}
+
+
+
+/* The code in void loop() runs repeatedly forever */
+void loop() {
+ 
+      //  extend(255);  // First extend the actuator
+      //  delay(3000); // Stop @ center for 10s
+  
+      //  retract(255); // Rectract to center 
+      //  delay(3000); // Stop @ center for 10s
+
+      forward(255);
+
+      if (distance <= 0.20){                  // Detects an object within 20cm
+        stp(255);                             // Stops the OTV
+        Enes100.updateLocation();             // Updates the OTVs location when it's positioned before the object
+        oldx = Enes100.location.x;            // Gives the x and
+        oldy = Enes100.location.y;            // y coordinates of the OTV when it's positioned before the object
+        delay(1000);                          // Delay before the OTV starts backing up
+        back(255);                            // OTV begins backing up
+        delay(2000);                          // Delay before OTV updates new location
+        Enes100.updateLocation();             // OTV updates new location
+      } 
+          if (Enes100.location.x < oldx ){    // X-coordinate changing case 
+            stp(255);                         // Stops the OTV
+            Enes100.updateLocation();         // Updates location
+              if (Enes100.location.y < 1){    // If OTV is located at the bottom of the arena, it will need to do a left turn then go up
+                left(255);
+                delay(1000);
+                forward(255);
+                  while (Enes100.location.theta < 1.58 && Enes100.location.theta > 1.56){
+                  stp(255);
+                  right(255);
+                  delay(1000);
+                  forward(255);
+                  }
+              }
+              else {                          // If OTV is located at the top of the arena, it will need to do a right turn then go down
+                right(255);
+                delay(1000);
+                forward(255);
+                  while (Enes100.location.theta < -1.58 && Enes100.location.theta > -1.56){
+                  stp(255);
+                  left(255);
+                  delay(1000);
+                  forward(255);
+                  }
+              }
+          }
+          if (Enes100.location.y < oldy ){    // Y-coordinate changing case; when the OTV encounters the walls; bottom-wall scenario
+            stp(255);                         // Stops OTV to prepare for left turn
+            left(255);                        // OTV gets ready for left turn
+            delay(1000);                      // Gives time until OTV drives forward
+            forward(255);                     // OTV drives forward
+              while (Enes100.location.theta < 0.01 && Enes100.location.theta > -0.1){
+                stp(255);
+                right(255);
+                delay(1000);
+                forward(255);
+                }
+            }
+              else{                           // When OTV encounters top-wall scenario
+                stp(255);                     // Stops OTV to prepare for right turn
+                right(255);                   // OTV gets ready for right turn
+                delay(1000);                  // Gives time until OTV drives forward
+                forward(255);                 // OTV drives forward
+                  while (Enes100.location.theta < 0.01 && Enes100.location.theta > -0.01){
+                    stp(255);
+                    left(255);
+                    delay(1000);
+                    forward(255);
+                    }
+                }
+
+        while(Enes100.location.x > 3.4 && Enes100.location.x < 3.5){
+          if(Enes100.location.y > 1){
+            stp(255);
+            right(255);
+            delay(1000);
+            forward(255);
+              while (Enes100.location.theta < -1.58 && Enes100.location.theta > -1.56 && Enes100.location.y > 0.5){
+                stp(255);
+                left(255); // Recentering
+                delay(1000);
+                forward(255);
+            }
+              while (Enes100.location.y > 0.5 && Enes100.location.theta > -1.58 && Enes100.location.theta < -0.01){
+                left(255);
+                delay(1000);
+                forward(255);
+              }
+              right(255);
+              delay(1000);
+              forward(255);
+            }
+          else forward(255);
+          
+        }
+    }
+
+
+int calculateDistance(){
+
+      digitalWrite(trigPin, LOW);
+      delayMicroseconds(2);
+      digitalWrite(trigPin, HIGH);
+      delayMicroseconds(10);
+      digitalWrite(trigPin, LOW);
+      pinMode(echoPin, INPUT);  
+      duration = pulseIn(echoPin, HIGH);
+      distance = duration*0.034/2; 
+      return distance;
+
+}
+
+
+    void forward(int a) {
+      digitalWrite(L1, HIGH);
+      digitalWrite(L2, LOW);
+      analogWrite(LS, a);
+
+    }
+
+    void back(int a) {
+      digitalWrite(L1, LOW);
+      digitalWrite(L2, HIGH);
+      analogWrite(LS, a);
+    }
+
+
+    void stp(int a) {
+      digitalWrite(L1, LOW);
+      digitalWrite(L2, LOW);
+      analogWrite(LS, a);
+    }
+
+    void right(int a) {
+      analogWrite(ENA_PIN, a);
+      digitalWrite(IN1_PIN, HIGH);
+      digitalWrite(IN2_PIN, LOW);
+      delay(381);
+      analogWrite(ENA_PIN, 0);
+    }
+
+    void left(int a) {
+      analogWrite(ENA_PIN, a);
+      digitalWrite(IN1_PIN, LOW);
+      digitalWrite(IN2_PIN, HIGH);
+      delay(381);
+      analogWrite(ENA_PIN, 0);
+
+    }
+
+    void printPi() {
+      Enes100.println(M_PI);  // M_PI is from the math.h library above.
+    }
