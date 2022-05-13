@@ -1,0 +1,287 @@
+#include "Enes100.h"
+#include <math.h>
+
+
+
+// Linear Actuator
+const int ENA_PIN = 6; // the Arduino pin connected to the EN1 pin L298N
+const int IN1_PIN = 7; // the Arduino pin connected to the IN1 pin L298N
+const int IN2_PIN = 5; // the Arduino pin connected to the IN2 pin L298N
+
+// Motor Pins
+int L1 = 9;
+int L2 = 10;
+int LS = 11;
+
+// Ultrasonic sensor
+const int echoPin = 2;
+const int trigPin = 3;
+
+float x1 = 0;
+float x2 = 0;
+float y1 = 0;
+float y2 = 0;
+float xdistance = 0;
+float ydistance = 0;
+float angleofpylon = 0;
+
+long duration;
+int distance; // Variable for the duration and distance
+
+/* The code inside void setup() runs only once, before the code in void loop(). */
+void setup() {
+
+  // Ultrasonic sensor
+
+  pinMode(trigPin, OUTPUT);
+  pinMode(echoPin, INPUT);
+  Serial.begin(9600);
+  delay(20);
+
+  // Actuator
+  pinMode(ENA_PIN, OUTPUT);
+  pinMode(IN1_PIN, OUTPUT);
+  pinMode(IN2_PIN, OUTPUT);
+
+  digitalWrite(ENA_PIN, HIGH);
+
+  // Motor
+  pinMode(L1, OUTPUT);
+  pinMode(L2, OUTPUT);
+  pinMode(LS, OUTPUT);
+
+}
+
+
+
+
+/* The code in void loop() runs repeatedly forever */
+void loop() {
+
+  hardleft(255);
+  delay(600);
+  smallbacktime(255);
+  stp(255);
+  hardright(255);
+  delay(600);
+  smallforwardtime(255);
+  stp(255);
+
+}
+
+
+
+int calculateDistance() {
+
+  digitalWrite(trigPin, LOW);
+  delayMicroseconds(2);
+  digitalWrite(trigPin, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(trigPin, LOW);
+  pinMode(echoPin, INPUT);
+  duration = pulseIn(echoPin, HIGH);
+  distance = duration * 0.034 / 2;
+  return distance;
+
+}
+
+void pylonangle() {
+  x1 = Enes100.location.x;
+  y1 = Enes100.location.y;
+  x2 = Enes100.missionSite.x;
+  y2 = Enes100.missionSite.y;
+  xdistance = abs(x2 - x1);
+  ydistance = abs(y2 - y1);
+  updatelocation();
+  if (Enes100.location.theta > 0 && Enes100.location.theta < 1.57) {        // 1st Quadrant
+    angleofpylon = 1.57 - atan(xdistance / ydistance);
+  }
+  if (Enes100.location.theta > 1.57 && Enes100.location.theta < 3.14) {     // 2nd Quadrant
+    angleofpylon = atan(xdistance / ydistance) + 1.57;
+  }
+  if (Enes100.location.theta > -1.57 && Enes100.location.theta < 0) {       // 3rd Quadrant
+    angleofpylon = -1.57 + atan(xdistance / ydistance);
+  }
+  if (Enes100.location.theta > -3.14 && Enes100.location.theta < -1.57) {   // 4th Quadrant
+    angleofpylon = -1.57 - atan(xdistance / ydistance) - 1.57;
+  }
+  Enes100.println(angleofpylon);
+
+}
+
+void forward(int a) {
+  digitalWrite(L1, HIGH);
+  digitalWrite(L2, LOW);
+  analogWrite(LS, a);
+
+}
+
+void updatelocation() {
+  while (!Enes100.updateLocation()) {
+    Enes100.println("404 Not Found");
+  }
+  Enes100.println("My x-coordinate is: " + String(Enes100.location.x));
+  Enes100.println("My y-coordinate is: " + String(Enes100.location.y));
+  Enes100.println("My theta-coordinate is: " + String(Enes100.location.theta));
+}
+
+void forwardtime(int a) {
+  digitalWrite(L1, HIGH);
+  digitalWrite(L2, LOW);
+  analogWrite(LS, a);
+  delay(5000);
+
+}
+
+void backtime(int a) {
+  digitalWrite(L1, LOW);
+  digitalWrite(L2, HIGH);
+  analogWrite(LS, a);
+  delay(5000);
+}
+
+void stp(int a) {
+  digitalWrite(L1, LOW);
+  digitalWrite(L2, LOW);
+  analogWrite(LS, a);
+}
+
+void hardright(int a) {
+  analogWrite(ENA_PIN, a);
+  digitalWrite(IN1_PIN, LOW);
+  digitalWrite(IN2_PIN, HIGH);
+  delay(4000);
+  analogWrite(ENA_PIN, 0);
+}
+
+void hardleft(int a) {
+  analogWrite(ENA_PIN, a);
+  digitalWrite(IN1_PIN, HIGH);
+  digitalWrite(IN2_PIN, LOW);
+  delay(4000);
+  analogWrite(ENA_PIN, 0);
+
+}
+
+void centerright(int a) {
+  analogWrite(ENA_PIN, a);
+  digitalWrite(IN1_PIN, LOW);
+  digitalWrite(IN2_PIN, HIGH);
+  delay(350);
+  analogWrite(ENA_PIN, 0);
+}
+
+void centerleft(int a) {
+  analogWrite(ENA_PIN, a);
+  digitalWrite(IN1_PIN, HIGH);
+  digitalWrite(IN2_PIN, LOW);
+  delay(350);
+  analogWrite(ENA_PIN, 0);
+
+}
+
+void smallright(int a) {
+  analogWrite(ENA_PIN, a);
+  digitalWrite(IN1_PIN, LOW);
+  digitalWrite(IN2_PIN, HIGH);
+  delay(50);
+  analogWrite(ENA_PIN, 0);
+}
+
+void smallleft(int a) {
+  analogWrite(ENA_PIN, a);
+  digitalWrite(IN1_PIN, HIGH);
+  digitalWrite(IN2_PIN, LOW);
+  delay(50);
+  analogWrite(ENA_PIN, 0);
+
+}
+
+void smallforwardtime(int a) {
+  digitalWrite(L1, HIGH);
+  digitalWrite(L2, LOW);
+  analogWrite(LS, a);
+  delay(1500);
+
+}
+
+void smallbacktime(int a) {
+  digitalWrite(L1, LOW);
+  digitalWrite(L2, HIGH);
+  analogWrite(LS, a);
+  delay(1500);
+}
+
+void Rotate() {
+  updatelocation();
+  if (Enes100.location.y > 1.00) {
+    Enes100.println("Something");
+    if ((Enes100.location.theta > 1.57 && Enes100.location.theta < 3.14)                // Quadrant 2
+        || (Enes100.location.theta > -1.57 && Enes100.location.theta < 0)) {            // Quadrant 4
+      while (!(Enes100.location.theta > -1.60) && !(Enes100.location.theta < -1.54)) {
+        hardleft(255);
+        delay(2000);
+        smallbacktime(255);
+        stp(255);
+        updatelocation();
+        hardright(255);
+        delay(2000);
+        smallforwardtime(255);
+        stp(255);
+        updatelocation();
+      }
+    }
+    if ((Enes100.location.theta > 0 && Enes100.location.theta < 1.57)                    // Quadrant 1
+        || (Enes100.location.theta > -3.14 && Enes100.location.theta < -1.57)) {         // Quadrant 3
+      while (!(Enes100.location.theta > -1.60) && !(Enes100.location.theta < -1.54)) {
+        hardright(255);
+        delay(2000);
+        smallbacktime(255);
+        stp(255);
+        updatelocation();
+        hardleft(255);
+        delay(2000);
+        smallforwardtime(255);
+        stp(255);
+        updatelocation();
+      }
+    }
+  }
+  else {
+    if ((Enes100.location.theta > 1.57 && Enes100.location.theta < 3.14)                // Quadrant 2
+        || (Enes100.location.theta > -1.57 && Enes100.location.theta < 0)) {            // Quadrant 4
+      while (!(Enes100.location.theta > 1.54) && !(Enes100.location.theta < 1.60)) {
+        hardleft(255);
+        delay(2000);
+        smallbacktime(255);
+        stp(255);
+        updatelocation();
+        hardright(255);
+        delay(2000);
+        smallforwardtime(255);
+        stp(255);
+        updatelocation();
+      }
+    }
+    if ((Enes100.location.theta > 0 && Enes100.location.theta < 1.57)                    // Quadrant 1
+        || (Enes100.location.theta > -3.14 && Enes100.location.theta < -1.57)) {         // Quadrant 3
+      while (!(Enes100.location.theta > 1.54) && !(Enes100.location.theta < 1.60)) {
+        hardright(255);
+        delay(2000);
+        smallbacktime(255);
+        stp(255);
+        updatelocation();
+        hardleft(255);
+        delay(2000);
+        smallforwardtime(255);
+        stp(255);
+        updatelocation();
+      }
+    }
+  }
+}
+
+
+void printPi() {
+  Enes100.println(M_PI);  // M_PI is from the math.h library above.
+}
